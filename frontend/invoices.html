@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quản lý hóa đơn</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- style.css (nếu có) -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <!-- Navbar top -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light justify-content-end px-4" style="margin-left: 220px;">
+    <ul class="navbar-nav">
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button"
+          data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-person-circle fs-4 me-2"></i> <span id="username"></span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+          <li><a class="dropdown-item" href="login.html" onclick="logout()">Đăng xuất</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+  <aside class="sidebar">
+    <div class="sidebar-header">Quản lý bán hàng</div>
+    <nav>
+      <a href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a>
+      <a href="payment.html"><i class="bi bi-credit-card"></i> Thanh toán</a>
+      <div class="dropdown">
+        <button class="dropbtn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-bar-chart"></i> Thống kê
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="statistics-product.html">Thống kê sản phẩm</a></li>
+          <li><a class="dropdown-item" href="statistics-revenue.html">Thống kê doanh thu</a></li>
+        </ul>
+      </div>
+      <a href="products.html"><i class="bi bi-box-seam me-2"></i>Sản phẩm</a>
+      <a href="customers.html"><i class="bi bi-people me-2"></i>Khách hàng</a>
+      <a href="employees.html"><i class="bi bi-person-badge me-2"></i>Nhân viên</a>
+      <a href="invoices.html" class="active"><i class="bi bi-receipt me-2"></i>Hóa đơn</a>
+    </nav>
+  </aside>
+
+
+  <main class="content">
+    <!-- <h2 class="mb-4">Quản lý hóa đơn</h2> -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div class="flex-grow-1">
+        <input type="text" id="searchInput" class="form-control" placeholder="Tìm hóa đơn..."
+          oninput="searchInvoices()" />
+      </div>
+
+
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle text-center" id="invoiceTable">
+        <thead class="table-dark">
+          <tr>
+            <th>Mã hóa đơn</th>
+            <th>Danh sách sản phẩm</th>
+            <th>Tổng tiền</th>
+            <th>Ngày tạo</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Dữ liệu sản phẩm sẽ được render ở đây -->
+        </tbody>
+      </table>
+    </div>
+    <div id="pagination"></div>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <form class="modal-content" id="invoiceForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Chỉnh sửa hóa đơn</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="invoiceCode" class="form-label">Mã hóa đơn</label>
+            <input type="text" id="invoiceCode" class="form-control" readonly />
+          </div>
+          <div id="productList"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    window.onload = () => {
+      if (!localStorage.getItem('employee')) {
+        localStorage.setItem('previousPage', window.location.href)
+        window.location.href = 'login.html'
+      }
+    };
+    const baseUrl = 'http://127.0.0.1:4000';
+    let invoices = [];
+    fetch(`${baseUrl}/invoices`)
+      .then((response, err) => {
+        if (!response.ok) {
+          throw new Error(`Response error: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data, err) => {
+        invoices = data
+        renderInvoices()
+      });
+
+    const tbody = document.querySelector('#invoiceTable tbody');
+    const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
+    const invoiceCode = document.getElementById('invoiceCode');
+    const productList = document.getElementById('productList');
+    const searchInput = document.getElementById('searchInput');
+
+    let editingIndex = -1;
+    let currentPage = 1;
+    const pageSize = 2;
+
+    function paginate(array, pageSize, pageNumber) {
+      return array.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
+    }
+
+    function renderPagination(totalItems) {
+      const pageCount = Math.ceil(totalItems / pageSize);
+      let paginationHTML = `<nav><ul class="pagination justify-content-center mt-3">`;
+
+      for (let i = 1; i <= pageCount; i++) {
+        paginationHTML += `
+        <li class="page-item ${i === currentPage ? 'active' : ''}">
+          <button class="page-link" onclick="goToPage(${i})">${i}</button>
+        </li>`;
+      }
+
+      paginationHTML += `</ul></nav>`;
+
+      const paginationContainer = document.getElementById('pagination');
+      if (!paginationContainer) {
+        const container = document.createElement('div');
+        container.id = 'pagination';
+        document.querySelector('.table-responsive').appendChild(container);
+      }
+      document.getElementById('pagination').innerHTML = paginationHTML;
+    }
+
+    function formatProducts(products) {
+      return products.map(p => `${p.id} - ${p.tenSP} (x${p.soLuong})`).join('<br>');
+    }
+
+    function renderInvoices(invoiceList = invoices) {
+      //   const search = searchBox.value.trim().toLowerCase();
+      const paginated = paginate(invoiceList, pageSize, currentPage);
+      tbody.innerHTML = '';
+      const search = searchInput.value.trim().toLowerCase();
+      paginated.forEach((inv, index) => {
+        // if (!inv.code.toLowerCase().includes(search)) return;
+        const row = `
+          <tr>
+            <td>${inv.id}</td>
+            <td>${formatProducts(inv.sanPham)}</td>
+            <td>${inv.tongTien.toLocaleString('vi-VN')} đ</td>
+            <td>${inv.ngayTao.slice(0, 10) || '---'}</td>
+            <td>
+              <button class="btn btn-warning btn-sm" onclick="editInvoice(${(currentPage - 1) * pageSize + index})">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+      renderPagination(invoiceList.length);
+    }
+
+    function goToPage(page) {
+      currentPage = page;
+      const keyword = searchInput.value.trim().toLowerCase();
+      const filtered = keyword
+        ? invoices.filter(inv => inv.id.toLowerCase().includes(keyword))
+        : invoices;
+      renderInvoices(filtered);
+    }
+
+    function searchInvoices() {
+      currentPage = 1;
+      const keyword = searchInput.value.trim().toLowerCase();
+      const filteredInvoices = invoices.filter(inv => {
+        const matchCode = inv.id.toLowerCase().includes(keyword);
+        const matchDate = (inv.ngayTao || '').includes(keyword);
+        return matchCode || matchDate;
+      });
+      renderInvoices(filteredInvoices);
+    }
+    function editInvoice(index) {
+      editingIndex = index;
+      const invoice = invoices[index];
+      invoiceCode.value = invoice.id;
+      productList.innerHTML = invoice.sanPham.map((p, i) => `
+        <div class="mb-3 row align-items-center">
+          <label class="col-sm-4 col-form-label">${p.tenSP}</label>
+          <div class="col-sm-8">
+            <input type="number" class="form-control" value="${p.soLuong}" min="1" data-index="${i}" />
+          </div>
+        </div>
+      `).join('');
+      modal.show();
+    }
+
+    document.getElementById('invoiceForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      modal.hide();
+      const invoice = invoices[editingIndex];
+      const inputs = productList.querySelectorAll('input[type="number"]');
+      invoice.tongTien = 0;
+      inputs.forEach(input => {
+        const i = +input.dataset.index;
+        invoice.sanPham[i].soLuong = +input.value;
+        invoice.tongTien += invoice.sanPham[i].soLuong * invoice.sanPham[i].giaBan
+      });
+      console.log(invoice)
+      // fetch(`${baseUrl}/invoices/${invoice.id}`, {
+      //   method: 'PUT',
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify(invoice),
+      // })
+      //   .then((response, err) => {
+      //     if (!response.ok) throw err
+      //     renderInvoices();
+      //   })
+    });
+
+    const username = document.getElementById('username');
+    username.innerHTML = JSON.parse(localStorage.getItem('employee')).taiKhoan;
+
+    // Logout handler
+    function logout() {
+      // Xoá token nếu có
+      localStorage.clear();
+    }
+
+  </script>
+</body>
+
+</html>

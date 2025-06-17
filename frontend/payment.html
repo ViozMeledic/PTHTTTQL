@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thanh toán nhiều sản phẩm</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.4);
+      padding: 20px 0;
+      /* Thêm padding để tránh chạm mép */
+    }
+
+    .modal-content {
+      background-color: white;
+      margin: 0 auto;
+      /* Thay đổi từ % sang auto */
+      padding: 20px;
+      border: 1px solid #888;
+      width: 90%;
+      /* Giảm từ 80% */
+      max-width: 600px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      max-height: calc(100vh - 40px);
+      /* Tính toán chiều cao chính xác */
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .modal-content {
+        width: 95%;
+        padding: 15px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .modal {
+        padding: 10px 0;
+      }
+
+      .modal-content {
+        width: 98%;
+        margin: 0 auto;
+        border-radius: 4px;
+        max-height: calc(100vh - 20px);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar top -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light justify-content-end px-4" style="margin-left: 220px;">
+    <ul class="navbar-nav">
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button"
+          data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-person-circle fs-4 me-2"></i> <span id="username"></span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+          <li><a class="dropdown-item" href="login.html" onclick="logout()">Đăng xuất</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+  <aside class="sidebar">
+    <div class="sidebar-header">Quản lý bán hàng</div>
+    <nav>
+      <a href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a>
+      <a href="payment.html" class="active"><i class="bi bi-credit-card"></i> Thanh toán</a>
+      <div class="dropdown">
+        <button class="dropbtn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-bar-chart"></i> Thống kê
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="statistics-product.html">Thống kê sản phẩm</a></li>
+          <li><a class="dropdown-item" href="statistics-revenue.html">Thống kê doanh thu</a></li>
+        </ul>
+      </div>
+      <a href="products.html"><i class="bi bi-box-seam me-2"></i>Sản phẩm</a>
+      <a href="customers.html"><i class="bi bi-people me-2"></i>Khách hàng</a>
+      <a href="employees.html"><i class="bi bi-person-badge me-2"></i>Nhân viên</a>
+      <a href="invoices.html"><i class="bi bi-receipt me-2"></i>Hóa đơn</a>
+    </nav>
+  </aside>
+
+  <div class="main-content" style="margin-left: 220px; padding: 20px;">
+    <!-- <h3>Thanh toán</h3> -->
+    <div class="row g-4">
+      <!-- Left column -->
+      <div class="col-md-7 d-flex flex-column gap-4">
+        <!-- Search product -->
+        <div class="input-group" style="max-width: 400px;">
+          <input type="text" id="productCode" class="form-control" placeholder="Nhập mã SP (VD: SP001)"
+            aria-label="Nhập mã sản phẩm" />
+          <button class="btn btn-primary" type="button" onclick="addProductToCart()" style="
+      padding: 10px 24px;
+      font-weight: 600;
+      font-size: 1rem;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      border-top-right-radius: 0.375rem;
+      border-bottom-right-radius: 0.375rem;
+      transition: background-color 0.3s ease;
+    " onmouseover="this.style.backgroundColor='#0b5ed7'" onmouseout="this.style.backgroundColor='#0d6efd'">
+            Tìm
+          </button>
+        </div>
+        <!-- Cart table -->
+        <div class="card flex-grow-1 overflow-auto">
+          <h5 class="mb-3">Giỏ hàng</h5>
+          <table class="table table-hover align-middle text-center mb-0">
+            <thead>
+              <tr>
+                <th>Tên SP</th>
+                <th>Giá (VNĐ)</th>
+                <th>SL</th>
+                <th>Thành tiền</th>
+                <th>Xóa</th>
+              </tr>
+            </thead>
+            <tbody id="cartTableBody" style="font-size: 0.95rem;"></tbody>
+          </table>
+        </div>
+
+        <!-- Customer info -->
+        <div class="card">
+          <h5 class="mb-3">Thông tin khách hàng</h5>
+          <form id="customerForm" autocomplete="off">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="customerName" class="form-label">Họ và tên:</label>
+                <input type="text" class="form-control" id="customerName" placeholder="Nguyễn Văn A" required
+                  oninvalid="this.setCustomValidity('Vui lòng nhập Họ và tên')" oninput="this.setCustomValidity('')" />
+              </div>
+              <div class="col-md-6">
+                <label for="customerPhone" class="form-label">Số điện thoại:</label>
+                <input type="tel" class="form-control" id="customerPhone" placeholder="0987654321" required
+                  oninvalid="this.setCustomValidity('Vui lòng nhập Số điện thoại')"
+                  oninput="this.setCustomValidity('')" />
+              </div>
+              <div class="col-md-6">
+                <label for="customerBirth" class="form-label">Ngày sinh:</label>
+                <input type="date" class="form-control" id="customerBirth" required
+                  oninvalid="this.setCustomValidity('Vui lòng nhập Ngày sinh')" oninput="this.setCustomValidity('')" />
+              </div>
+              <div class="col-md-6">
+                <label for="customerEmail" class="form-label">Email:</label>
+                <input type="email" class="form-control" id="customerEmail" placeholder="example@mail.com" required
+                  oninvalid="this.setCustomValidity('Vui lòng nhập Email')" oninput="this.setCustomValidity('')" />
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Right column (payment) -->
+      <div class="col-md-5 d-flex">
+        <div class="card full-height w-100 d-flex flex-column justify-content-between">
+          <div>
+            <h5 class="mb-4">Thanh toán</h5>
+            <p>
+              <strong>Tổng tiền:</strong>
+              <span id="grandTotal">0</span> VNĐ
+            </p>
+            <label for="paymentMethod" class="form-label">Phương thức thanh toán:</label>
+            <select id="paymentMethod" class="form-select mb-3" onchange="handlePaymentChange()"
+              aria-label="Chọn phương thức thanh toán">
+              <option value="cash">Tiền mặt</option>
+              <option value="bank">Chuyển khoản</option>
+            </select>
+            <div id="cashSection">
+              <label for="cashReceived" class="form-label">Tiền khách đưa:</label>
+              <input type="number" id="cashReceived" class="form-control" min="0" placeholder="Nhập số tiền khách đưa"
+                oninput="calculateChange()" aria-describedby="changeHelp" />
+              <small id="changeHelp" class="form-text text-muted mt-1">
+                <strong>Tiền thừa:</strong>
+                <span id="change">0</span> VNĐ
+              </small>
+            </div>
+          </div>
+          <button class="btn btn-success w-100 mt-4" type="button" onclick="saveInvoice()">
+            Thanh toán
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Modal in hóa đơn -->
+    <div id="invoiceModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <span class="close" onclick="closeInvoiceModal()">&times;</span>
+        <h3>Hóa đơn</h3>
+        <div id="invoiceContent">
+          <!-- Nội dung hóa đơn sẽ hiển thị tại đây -->
+        </div>
+        <button onclick="printInvoice()" class="btn btn-primary mt-2">In</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    addEventListener('DOMContentLoaded', () => {
+      if (!localStorage.getItem('employee')) {
+        localStorage.setItem('previousPage', window.location.href)
+        window.location.href = 'login.html'
+      }
+    });
+    const baseUrl = 'http://127.0.0.1:4000';
+
+    // Giỏ hàng chứa sản phẩm
+    let cart = [];
+    let grandTotal = 0;
+
+    /**
+     * Thêm sản phẩm vào giỏ hàng
+     */
+    function addProductToCart() {
+      const input = document.getElementById("productCode");
+      const code = input.value.trim().toUpperCase();
+      if (!code) {
+        alert("Vui lòng nhập mã sản phẩm.");
+        return;
+      }
+
+      fetch(`${baseUrl}/products/${code}`)
+        .then((response, err) => {
+          if (!response.ok) {
+            alert("Không tìm thấy sản phẩm với mã: " + code);
+            return;
+          }
+          return response.json();
+        })
+        .then((data, err) => {
+          if (!data) return;
+          const product = data;
+          // Kiểm tra nếu sản phẩm đã có trong giỏ hàng thì tăng số lượng
+          const existingIndex = cart.findIndex((item) => item.id === product.id);
+          if (existingIndex !== -1) {
+            cart[existingIndex].soLuong++;
+          } else {
+            cart.push({ ...product, soLuong: 1 });
+          }
+
+          input.value = "";
+          renderCart();
+        })
+    }
+
+    /**
+     * Vẽ lại bảng giỏ hàng
+     */
+    function renderCart() {
+      const tbody = document.getElementById("cartTableBody");
+      tbody.innerHTML = "";
+
+      cart.forEach((item, index) => {
+        const total = item.giaBan * item.soLuong;
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${item.tenSP}</td>
+          <td>${item.giaBan.toLocaleString('vi-VN')}</td>
+          <td>
+            <input type="number" min="1" value="${item.soLuong}" 
+              onchange="updateQuantity(${index}, this.value)" 
+              aria-label="Số lượng ${item.tenSP}" />
+          </td>
+          <td>${total.toLocaleString('vi-VN')}</td>
+          <td>
+            <button 
+              class="btn btn-danger" 
+              onclick="removeProduct(${index})"
+              title="Xóa sản phẩm khỏi giỏ"
+              aria-label="Xóa ${item.tenSP} khỏi giỏ hàng"
+            >
+              &times;
+            </button>
+          </td>
+        `;
+
+        tbody.appendChild(row);
+      });
+
+      updateTotal();
+    }
+
+    /**
+     * Cập nhật số lượng sản phẩm trong giỏ hàng
+     * @param {number} index 
+     * @param {string|number} quantity 
+     */
+    function updateQuantity(index, quantity) {
+      quantity = Number(quantity);
+      if (quantity < 1 || isNaN(quantity)) {
+        alert("Số lượng phải lớn hơn hoặc bằng 1");
+        renderCart();
+        return;
+      }
+      cart[index].soLuong = quantity;
+      renderCart();
+    }
+
+    /**
+     * Xóa sản phẩm khỏi giỏ hàng
+     * @param {number} index 
+     */
+    function removeProduct(index) {
+      if (confirm("Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?")) {
+        cart.splice(index, 1);
+        renderCart();
+      }
+    }
+    // * Kiểm tra số điện thoại hợp lệ (10-11 số, bắt đầu bằng 0)
+    // * @param {string} phone 
+    // * @returns {boolean}
+    // */
+    function isValidPhoneNumber(phone) {
+      const phoneRegex = /^(0[0-9]{9,10})$/; // Bắt đầu bằng 0, 10-11 số
+      return phoneRegex.test(phone);
+    }
+    /**
+     * Cập nhật tổng tiền
+     */
+    function updateTotal() {
+      const grandTotalEl = document.getElementById("grandTotal");
+      grandTotal = cart.reduce((sum, item) => sum + item.giaBan * item.soLuong, 0);
+      grandTotalEl.textContent = grandTotal.toLocaleString('vi-VN');
+      calculateChange();
+    }
+
+    /**
+     * Tính tiền thừa khi khách thanh toán tiền mặt
+     */
+    function calculateChange() {
+      const paymentMethod = document.getElementById("paymentMethod").value;
+      if (paymentMethod !== "cash") {
+        document.getElementById("change").textContent = "0";
+        return;
+      }
+      const cashReceived = Number(document.getElementById("cashReceived").value);
+      const change = cashReceived >= grandTotal ? cashReceived - grandTotal : 0;
+      document.getElementById("change").textContent = change.toLocaleString('vi-VN');
+    }
+
+    /**
+     * Xử lý thay đổi phương thức thanh toán
+     */
+    function handlePaymentChange() {
+      const method = document.getElementById("paymentMethod").value;
+      const cashSection = document.getElementById("cashSection");
+      if (method === "cash") {
+        cashSection.style.display = "block";
+      } else {
+        cashSection.style.display = "none";
+        document.getElementById("cashReceived").value = "";
+        document.getElementById("change").textContent = "0";
+      }
+    }
+
+    /**
+     * Lưu hóa đơn
+     */
+    function saveInvoice() {
+      if (cart.length === 0) {
+        alert("Giỏ hàng đang trống. Vui lòng thêm sản phẩm.");
+        return;
+      }
+
+      const name = document.getElementById("customerName").value.trim();
+      const phone = document.getElementById("customerPhone").value.trim();
+      const dob = Date.parse(document.getElementById("customerBirth").value);
+      const email = document.getElementById("customerEmail").value.trim();
+      const paymentMethod = document.getElementById("paymentMethod").value.trim();
+      const nganHang = paymentMethod === 'bank' ? 'AgriBank' : '';
+      const maGiaoDich = paymentMethod === 'bank' ? String(Date.now()) : '';
+
+      if (!name) {
+        alert("Vui lòng nhập Họ và tên");
+        return;
+      }
+      if (!phone) {
+        alert("Vui lòng nhập Số điện thoại");
+        return;
+      }
+      if (!dob) {
+        alert("Vui lòng nhập Ngày sinh");
+        return;
+      }
+      if (!email) {
+        alert("Vui lòng nhập Email");
+        return;
+      }
+
+      // Kiểm tra thanh toán tiền mặt có đủ tiền không
+      if (paymentMethod === "cash") {
+        const cashReceived = Number(document.getElementById("cashReceived").value);
+        const total = cart.reduce((sum, item) => sum + item.giaBan * item.soLuong, 0);
+        if (isNaN(cashReceived) || cashReceived < total) {
+          alert("Tiền khách đưa chưa đủ thanh toán.");
+          return;
+        }
+      }
+
+      let products = {}
+      cart.forEach(product => {
+        products[product.id] = product
+      })
+
+      // Giả lập lưu dữ liệu (có thể gửi ajax lên server ở đây)
+      fetch(`${baseUrl}/invoices`, {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tblNhanVienid: localStorage.getItem('id'),
+          customer: {
+            tenKH: name,
+            sdt: phone,
+            ngaySinh: dob,
+            email: email
+          },
+          tongTien: grandTotal,
+          ngayTao: Date.now(),
+          hinhThucThanhToan: paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản',
+          nganHang,
+          maGiaoDich,
+          products
+        }),
+      })
+        .then((response, err) => {
+          if (response.status === 201) {
+            alert("Lưu hóa đơn thành công! Cảm ơn bạn.");
+            return
+          }
+          return response.json()
+        })
+        .then((data, err) => {
+          if (data)
+            alert(data.message)
+        })
+
+      // Reset form và giỏ hàng
+      cart = [];
+      renderCart();
+      document.getElementById("customerForm").reset();
+      document.getElementById("cashReceived").value = "";
+      document.getElementById("change").textContent = "0";
+    }
+
+    // Khởi tạo
+    handlePaymentChange();
+  </script>
+
+  <script>
+    // function saveInvoice() {
+    //   // Giả định dữ liệu khách hàng & sản phẩm
+    //   const customerName = document.getElementById("customerName")?.value || "Chưa nhập";
+    //   const customerPhone = document.getElementById("customerPhone")?.value || "Chưa nhập";
+
+    //   const invoiceHTML = `
+    //   <p><strong>Khách hàng:</strong> ${customerName}</p>
+    //   <p><strong>SĐT:</strong> ${customerPhone}</p>
+    //   <p><strong>Sản phẩm:</strong> SP001 - Sản phẩm A x 2</p>
+    //   <p><strong>Tổng tiền:</strong> 1,000,000 VND</p>
+    //   <p><strong>Phương thức:</strong> Tiền mặt</p>
+    // `;
+
+    //   // Hỏi người dùng có muốn in không
+    //   const confirmPrint = confirm("Hóa đơn đã được lưu.\nBạn có muốn in hóa đơn không?");
+
+    //   if (confirmPrint) {
+    //     document.getElementById("invoiceContent").innerHTML = invoiceHTML;
+    //     document.getElementById("invoiceModal").style.display = "block";
+    //   } else {
+    //     alert("Hóa đơn đã được lưu thành công.");
+    //   }
+    // }
+
+    function closeInvoiceModal() {
+      document.getElementById("invoiceModal").style.display = "none";
+    }
+
+    function printInvoice() {
+      const printContents = document.getElementById("invoiceContent").innerHTML;
+      const originalContents = document.body.innerHTML;
+
+      document.body.innerHTML = printContents;
+      window.print();
+      document.body.innerHTML = originalContents;
+      location.reload(); // reload lại sau khi in để quay về giao diện ban đầu
+    }
+
+    // Đóng modal nếu click ra ngoài
+    window.onclick = function (event) {
+      const modal = document.getElementById('invoiceModal');
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    }
+
+    const username = document.getElementById('username');
+    username.innerHTML = localStorage.getItem('employee') ? JSON.parse(localStorage.getItem('employee')).taiKhoan : '';
+
+    // Logout handler
+    function logout() {
+      // Xoá token nếu có
+      localStorage.clear();
+    }
+
+  </script>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

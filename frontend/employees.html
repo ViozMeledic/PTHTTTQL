@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quản lý nhân viên</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <!-- Navbar top -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light justify-content-end px-4" style="margin-left: 220px;">
+    <ul class="navbar-nav">
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button"
+          data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-person-circle fs-4 me-2"></i> <span id="username"></span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+          <li><a class="dropdown-item" href="login.html" onclick="logout()">Đăng xuất</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+  <aside class="sidebar">
+    <div class="sidebar-header">Quản lý bán hàng</div>
+    <nav>
+      <a href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a>
+      <a href="payment.html"><i class="bi bi-credit-card"></i> Thanh toán</a>
+      <div class="dropdown">
+        <button class="dropbtn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-bar-chart"></i> Thống kê
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="statistics-product.html">Thống kê sản phẩm</a></li>
+          <li><a class="dropdown-item" href="statistics-revenue.html">Thống kê doanh thu</a></li>
+        </ul>
+      </div>
+      <a href="products.html"><i class="bi bi-box-seam me-2"></i>Sản phẩm</a>
+      <a href="customers.html"><i class="bi bi-people me-2"></i>Khách hàng</a>
+      <a href="employees.html" class="active"><i class="bi bi-person-badge me-2"></i> Nhân viên</a>
+      <a href="invoices.html"><i class="bi bi-receipt me-2"></i>Hóa đơn</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <!-- <h2 class="mb-4">Quản lý nhân viên</h2> -->
+
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div class="flex-grow-1">
+        <input type="text" id="searchInput" class="form-control" placeholder="Tìm nhân viên..."
+          oninput="searchEmployees()" />
+      </div>
+
+      <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#employeeModal" onclick="openAddForm()">
+        <i class="bi bi-plus-circle"></i> Thêm nhân viên
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle text-center" id="employeesTable">
+        <thead class="table-dark">
+          <tr>
+            <th>Mã NV</th>
+            <th>Tên nhân viên</th>
+            <th>Chức vụ</th>
+            <th>Lương</th>
+            <th>Số điện thoại</th>
+            <th>Ngày sinh</th>
+            <th>Địa chỉ</th>
+            <th>Tài khoản</th>
+            <th>Mật khẩu</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Dữ liệu nhân viên sẽ được render ở đây -->
+        </tbody>
+      </table>
+    </div>
+    <div id="pagination"></div>
+  </main>
+
+  <!-- Modal Form -->
+  <div class="modal fade" id="employeeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="employeeForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="formTitle">Thêm nhân viên</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3" id="unamed">
+            <label for="employeeCode" class="form-label">Mã nhân viên</label>
+            <input type="text" id="employeeCode" class="form-control" required readonly />
+          </div>
+          <div class="mb-3">
+            <label for="employeeName" class="form-label">Tên nhân viên</label>
+            <input type="text" id="employeeName" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="employeePosition" class="form-label">Chức vụ</label>
+            <input type="text" id="employeePosition" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="employeeSalary" class="form-label">Lương</label>
+            <input type="number" id="employeeSalary" class="form-control" required min="0" />
+          </div>
+          <div class="mb-3">
+            <label for="employeePhone" class="form-label">Số điện thoại</label>
+            <input type="text" id="employeePhone" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="employeeDob" class="form-label">Ngày sinh</label>
+            <input type="date" id="employeeDob" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="employeeAddress" class="form-label">Địa chỉ</label>
+            <input type="text" id="employeeAddress" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="employeeUsername" class="form-label">Tài khoản</label>
+            <input type="text" id="employeeUsername" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="employeePassword" class="form-label">Mật khẩu</label>
+            <input type="text" id="employeePassword" class="form-control" required />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    addEventListener('DOMContentLoaded', () => {
+      if (!localStorage.getItem('employee')) {
+        localStorage.setItem('previousPage', window.location.href)
+        window.location.href = 'login.html'
+      }
+    });
+    const baseUrl = 'http://127.0.0.1:4000';
+    let employees = [];
+    fetch(`${baseUrl}/employees`)
+      .then((response, err) => {
+        if (!response.ok) {
+          throw new Error(`Response error: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data, err) => {
+        employees = data
+        renderEmployees()
+      });
+
+    const tbody = document.querySelector('#employeesTable tbody');
+    const form = document.getElementById('employeeForm');
+    const formTitle = document.getElementById('formTitle');
+    const modalInstance = new bootstrap.Modal(document.getElementById('employeeModal'));
+    const employeeCodeDiv = document.getElementById('unamed');
+
+    const codeInput = document.getElementById('employeeCode');
+    const nameInput = document.getElementById('employeeName');
+    const positionInput = document.getElementById('employeePosition');
+    const salaryInput = document.getElementById('employeeSalary');
+    const phoneInput = document.getElementById('employeePhone');
+    const dobInput = document.getElementById('employeeDob');
+    const addressInput = document.getElementById('employeeAddress');
+    const usernameInput = document.getElementById('employeeUsername');
+    const passwordInput = document.getElementById('employeePassword');
+    const searchInput = document.getElementById('searchInput');
+
+
+    let editingIndex = -1;
+    let currentPage = 1;
+    const pageSize = 2;
+
+    function paginate(array, pageSize, pageNumber) {
+      return array.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
+    }
+
+    function renderPagination(totalItems) {
+      const pageCount = Math.ceil(totalItems / pageSize);
+      let paginationHTML = `<nav><ul class="pagination justify-content-center mt-3">`;
+
+      for (let i = 1; i <= pageCount; i++) {
+        paginationHTML += `
+        <li class="page-item ${i === currentPage ? 'active' : ''}">
+          <button class="page-link" onclick="goToPage(${i})">${i}</button>
+        </li>`;
+      }
+
+      paginationHTML += `</ul></nav>`;
+
+      const paginationContainer = document.getElementById('pagination');
+      if (!paginationContainer) {
+        const container = document.createElement('div');
+        container.id = 'pagination';
+        document.querySelector('.table-responsive').appendChild(container);
+      }
+      document.getElementById('pagination').innerHTML = paginationHTML;
+    }
+
+    function renderEmployees(employeeList = employees) {
+      const paginated = paginate(employeeList, pageSize, currentPage);
+      tbody.innerHTML = '';
+      paginated.forEach((e, i) => {
+        const row = `
+              <tr>
+                <td>${e.id}</td>
+                <td>${e.tenNV}</td>
+                <td>${e.chucVu}</td>
+                <td>${e.luong.toLocaleString('vi-VN')} đ</td>
+                <td>${e.sdt}</td>
+                <td>${Intl.DateTimeFormat('vi-VN').format(new Date(e.ngaySinh))}
+                <td>${e.diaChi}</td>
+                <td>${e.taiKhoan}</td>
+                <td>${e.matKhau}</td>
+                <td class="text-center text-nowrap">
+                  <div class="d-inline-flex gap-1">
+                    <button class="btn btn-sm btn-warning" onclick="editEmployee(${(currentPage - 1) * pageSize + i})">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteEmployee(${(currentPage - 1) * pageSize + i})">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+      renderPagination(employeeList.length);
+    }
+
+    function goToPage(page) {
+      currentPage = page;
+      const keyword = searchInput.value.trim().toLowerCase();
+      const filtered = keyword
+        ? employees.filter(p =>
+          p.id.toLowerCase().includes(keyword) ||
+          p.tenNV.toLowerCase().includes(keyword) ||
+          p.sdt.includes(keyword))
+        : employees;
+      renderEmployees(filtered);
+    }
+
+    function searchEmployees() {
+      currentPage = 1;
+      const keyword = searchInput.value.trim().toLowerCase();
+      const filteredEmployees = employees.filter(p =>
+        p.id.toLowerCase().includes(keyword) ||
+        p.tenNV.toLowerCase().includes(keyword) ||
+        p.sdt.includes(keyword));
+
+      renderEmployees(filteredEmployees);
+    }
+
+    function openAddForm() {
+      editingIndex = -1;
+      formTitle.textContent = 'Thêm nhân viên';
+      form.reset();
+      codeInput.disabled = false;
+      employeeCodeDiv.style.display = "none";
+      modalInstance.show();
+    }
+
+    function editEmployee(index) {
+      editingIndex = index;
+      const e = employees[index];
+      formTitle.textContent = 'Chỉnh sửa nhân viên';
+      codeInput.value = e.id;
+      nameInput.value = e.tenNV;
+      positionInput.value = e.chucVu;
+      phoneInput.value = e.sdt;
+      dobInput.value = e.ngaySinh.slice(0, 10);
+      addressInput.value = e.diaChi;
+      salaryInput.value = e.luong;
+      usernameInput.value = e.taiKhoan;
+      passwordInput.value = e.matKhau;
+      codeInput.disabled = true;
+      employeeCodeDiv.style.display = "block";
+      modalInstance.show();
+    }
+
+    function deleteEmployee(id) {
+      if (confirm('Bạn có chắc chắn muốn xóa nhân viên này?')) {
+        fetch(`${baseUrl}/employees/${employees[id].id}`, {
+          method: 'DELETE',
+        })
+          .then((response, err) => {
+            if (response.status === 404) {
+              console.log('Nhân viên không tồn tại')
+            }
+            location.reload();
+          })
+      }
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      modalInstance.hide();
+      const id = codeInput.value.trim();
+      const tenNV = nameInput.value.trim();
+      const chucVu = positionInput.value.trim();
+      const sdt = phoneInput.value.trim();
+      const ngaySinh = dobInput.value.trim();
+      const diaChi = addressInput.value.trim();
+      const luong = parseInt(salaryInput.value.trim());
+      const taiKhoan = usernameInput.value.trim();
+      const matKhau = passwordInput.value.trim();
+      const newEmployee = { tenNV, chucVu, sdt, ngaySinh, diaChi, luong, taiKhoan, matKhau };
+
+      if (!tenNV || !chucVu || !sdt || !ngaySinh || !diaChi || !luong || !taiKhoan || !matKhau) {
+        alert('Vui lòng nhập đầy đủ thông tin!');
+        return;
+      }
+
+      if (editingIndex === -1) {
+        fetch(`${baseUrl}/employees`, {
+          method: 'POST',
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newEmployee),
+        })
+          .then((response, err) => {
+            if (response.status === 201)
+              return response.json(newEmployee)
+          })
+          .then((data, err) => {
+            employees.push({ id: data.id, ...newEmployee })
+            renderEmployees();
+          })
+      } else {
+        fetch(`${baseUrl}/employees/${id}`, {
+          method: 'PUT',
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newEmployee),
+        })
+          .then((response, err) => {
+            if (!response.ok) throw new Error(err.message)
+            employees[editingIndex] = { id, ...newEmployee };
+            renderEmployees();
+          })
+      }
+    });
+
+    const username = document.getElementById('username');
+    username.innerHTML = localStorage.getItem('employee') ? JSON.parse(localStorage.getItem('employee')).taiKhoan : '';
+
+    // Logout handler
+    function logout() {
+      // Xoá token nếu có
+      localStorage.clear();
+    }
+
+  </script>
+</body>
+
+</html>

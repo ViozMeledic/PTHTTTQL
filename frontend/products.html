@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quản lý sản phẩm</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- style.css (nếu có) -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <!-- Navbar top -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light justify-content-end px-4" style="margin-left: 220px;">
+    <ul class="navbar-nav">
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button"
+          data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-person-circle fs-4 me-2"></i> <span id="username"></span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+          <li><a class="dropdown-item" href="login.html" onclick="logout()">Đăng xuất</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+  <aside class="sidebar">
+    <div class="sidebar-header">Quản lý bán hàng</div>
+    <nav>
+      <a href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a>
+      <a href="payment.html"><i class="bi bi-credit-card"></i> Thanh toán</a>
+      <div class="dropdown">
+        <button class="dropbtn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-bar-chart"></i> Thống kê
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="statistics-product.html">Thống kê sản phẩm</a></li>
+          <li><a class="dropdown-item" href="statistics-revenue.html">Thống kê doanh thu</a></li>
+        </ul>
+      </div>
+      <a href="products.html" class="active"><i class="bi bi-box-seam me-2"></i>Sản phẩm</a>
+      <a href="customers.html"><i class="bi bi-people me-2"></i>Khách hàng</a>
+      <a href="employees.html"><i class="bi bi-person-badge me-2"></i>Nhân viên</a>
+      <a href="invoices.html"><i class="bi bi-receipt me-2"></i>Hóa đơn</a>
+    </nav>
+  </aside>
+
+
+  <main class="content">
+    <!-- <h2 class="mb-4">Quản lý sản phẩm</h2> -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div class="flex-grow-1">
+        <input type="text" id="searchInput" class="form-control" placeholder="Tìm sản phẩm..."
+          oninput="searchProducts()" />
+      </div>
+
+      <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#productModal" onclick="openAddForm()">
+        <i class="bi bi-plus-circle"></i> Thêm sản phẩm
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle text-center" id="productsTable">
+        <thead class="table-dark">
+          <tr>
+            <th>Mã SP</th>
+            <th>Tên sản phẩm</th>
+            <th>Giá</th>
+            <th>Số lượng</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Dữ liệu sản phẩm sẽ được render ở đây -->
+        </tbody>
+      </table>
+    </div>
+    <div id="pagination"></div>
+  </main>
+
+  <!-- Modal Form -->
+  <div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog">
+      <form class="modal-content" id="productForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="formTitle">Thêm sản phẩm</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3" id="unamed">
+            <label for="productCode" class="form-label">Mã sản phẩm</label>
+            <input type="text" id="productCode" class="form-control" required readonly />
+          </div>
+          <div class="mb-3">
+            <label for="productName" class="form-label">Tên sản phẩm</label>
+            <input type="text" id="productName" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="productPrice" class="form-label">Giá</label>
+            <input type="number" id="productPrice" class="form-control" required min="0" />
+          </div>
+          <div class="mb-3">
+            <label for="productQuantity" class="form-label">Số lượng</label>
+            <input type="number" id="productQuantity" class="form-control" required min="0" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    addEventListener('DOMContentLoaded', () => {
+      if (!localStorage.getItem('employee')) {
+        localStorage.setItem('previousPage', window.location.href)
+        window.location.href = 'login.html'
+      }
+    });
+    const baseUrl = 'http://127.0.0.1:4000';
+    let products = [];
+    fetch(`${baseUrl}/products`)
+      .then((response, err) => {
+        if (!response.ok) {
+          throw new Error(`Response error: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data, err) => {
+        products = data
+        renderProducts()
+      });
+
+    const tbody = document.querySelector('#productsTable tbody');
+    const form = document.getElementById('productForm');
+    const formTitle = document.getElementById('formTitle');
+    const modal = new bootstrap.Modal(document.getElementById('productModal'));
+    const productCodeDiv = document.getElementById('unamed');
+
+    const codeInput = document.getElementById('productCode');
+    const nameInput = document.getElementById('productName');
+    const priceInput = document.getElementById('productPrice');
+    const quantityInput = document.getElementById('productQuantity');
+    const searchInput = document.getElementById('searchInput');
+
+    let editingIndex = -1;
+    let currentPage = 1;
+    const pageSize = 2;
+
+    function paginate(array, pageSize, pageNumber) {
+      return array.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
+    }
+
+    function renderPagination(totalItems) {
+      const pageCount = Math.ceil(totalItems / pageSize);
+      let paginationHTML = `<nav><ul class="pagination justify-content-center mt-3">`;
+
+      for (let i = 1; i <= pageCount; i++) {
+        paginationHTML += `
+        <li class="page-item ${i === currentPage ? 'active' : ''}">
+          <button class="page-link" onclick="goToPage(${i})">${i}</button>
+        </li>`;
+      }
+
+      paginationHTML += `</ul></nav>`;
+
+      const paginationContainer = document.getElementById('pagination');
+      if (!paginationContainer) {
+        const container = document.createElement('div');
+        container.id = 'pagination';
+        document.querySelector('.table-responsive').appendChild(container);
+      }
+      document.getElementById('pagination').innerHTML = paginationHTML;
+    }
+
+    function renderProducts(productList = products) {
+      const paginated = paginate(productList, pageSize, currentPage);
+      tbody.innerHTML = '';
+      paginated.forEach((p, i) => {
+        const row = `
+                <tr>
+                  <td>${p.id}</td>
+                  <td>${p.tenSP}</td>
+                  <td>${p.giaBan.toLocaleString('vi-VN')}</td>
+                  <td>${p.soLuong}</td>
+                  <td class="text-center text-nowrap">
+                    <div class="d-inline-flex gap-1">
+                    <button class="btn btn-sm btn-warning" onclick="editProduct(${(currentPage - 1) * pageSize + i})">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteProduct(${(currentPage - 1) * pageSize + i})">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+      renderPagination(productList.length);
+    }
+
+    function goToPage(page) {
+      currentPage = page;
+      const keyword = searchInput.value.trim().toLowerCase();
+      const filtered = keyword
+        ? products.filter(p =>
+          p.id.toLowerCase().includes(keyword) ||
+          p.tenSP.toLowerCase().includes(keyword))
+        : products;
+      renderProducts(filtered);
+    }
+
+    function searchProducts() {
+      currentPage = 1;
+      const keyword = searchInput.value.trim().toLowerCase();
+      const filteredProducts = products.filter(p =>
+        p.id.toLowerCase().includes(keyword) ||
+        p.tenSP.toLowerCase().includes(keyword));
+      renderProducts(filteredProducts);
+    }
+
+    function openAddForm() {
+      editingIndex = -1;
+      formTitle.textContent = 'Thêm sản phẩm';
+      form.reset();
+      codeInput.disabled = false;
+      productCodeDiv.style.display = "none";
+      modal.show();
+    }
+
+    function editProduct(id) {
+      editingIndex = id;
+      const p = products[id];
+      formTitle.textContent = 'Chỉnh sửa sản phẩm';
+      codeInput.value = p.id;
+      nameInput.value = p.tenSP;
+      priceInput.value = p.giaBan;
+      quantityInput.value = p.soLuong;
+      codeInput.disabled = true;
+      productCodeDiv.style.display = "block";
+      modal.show();
+    }
+
+    function deleteProduct(id) {
+      if (confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
+        fetch(`${baseUrl}/products/${products[id].id}`, {
+          method: 'DELETE',
+        })
+          .then((response, err) => {
+            if (response.status === 404) {
+              console.log('Sản phẩm không tồn tại')
+            }
+            location.reload();
+          })
+      }
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      modal.hide();
+      const id = codeInput.value.trim();
+      const tenSP = nameInput.value.trim();
+      const giaBan = parseFloat(priceInput.value);
+      const soLuong = parseInt(quantityInput.value);
+      const newProduct = { tenSP, giaBan, soLuong };
+      if (!id || !tenSP || giaBan < 0 || soLuong < 0) {
+        alert('Vui lòng nhập đúng thông tin!');
+        return;
+      }
+
+      if (editingIndex === -1) {
+        fetch(`${baseUrl}/products`, {
+          method: 'POST',
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newProduct),
+        })
+          .then((response, err) => {
+            if (response.status === 201)
+              return response.json(newProduct)
+          })
+          .then((data, err) => {
+            products.push({ id: data.id, ...newProduct })
+            renderProducts();
+          })
+      } else {
+        fetch(`${baseUrl}/products/${id}`, {
+          method: 'PUT',
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newProduct),
+        })
+          .then((response, err) => {
+            if (!response.ok) throw new Error(err.message)
+            products[editingIndex] = { id, ...newProduct };
+            renderProducts();
+          })
+      }
+    });
+
+    const username = document.getElementById('username');
+    username.innerHTML = localStorage.getItem('employee') ? JSON.parse(localStorage.getItem('employee')).taiKhoan : '';
+
+    // Logout handler
+    function logout() {
+      // Xoá token nếu có
+      localStorage.clear();
+    }
+
+  </script>
+</body>
+
+</html>

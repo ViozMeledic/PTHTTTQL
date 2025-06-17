@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quản lý khách hàng</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <!-- Navbar top -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light justify-content-end px-4" style="margin-left: 220px;">
+    <ul class="navbar-nav">
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button"
+          data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-person-circle fs-4 me-2"></i> <span id="username"></span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+          <li><a class="dropdown-item" href="login.html" onclick="logout()">Đăng xuất</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+  <aside class="sidebar">
+    <div class="sidebar-header">Quản lý bán hàng</div>
+    <nav>
+      <a href="dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a>
+      <a href="payment.html"><i class="bi bi-credit-card"></i> Thanh toán</a>
+      <div class="dropdown">
+        <button class="dropbtn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-bar-chart"></i> Thống kê
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="statistics-product.html">Thống kê sản phẩm</a></li>
+          <li><a class="dropdown-item" href="statistics-revenue.html">Thống kê doanh thu</a></li>
+        </ul>
+      </div>
+      <a href="products.html"><i class="bi bi-box-seam me-2"></i>Sản phẩm</a>
+      <a href="customers.html" class="active"><i class="bi bi-people me-2"></i> Khách hàng</a>
+      <a href="employees.html"><i class="bi bi-person-badge me-2"></i> Nhân viên</a>
+      <a href="invoices.html"><i class="bi bi-receipt me-2"></i>Hóa đơn</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <!-- <h2 class="mb-4">Quản lý khách hàng</h2> -->
+
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div class="flex-grow-1">
+        <input type="text" id="searchInput" class="form-control" placeholder="Tìm nhân viên..."
+          oninput="searchCustomers()" />
+      </div>
+
+      <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#customerModal" onclick="openAddForm()">
+        <i class="bi bi-plus-circle"></i> Thêm nhân viên
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle text-center" id="customersTable">
+        <thead class="table-dark">
+          <tr>
+            <th>Mã KH</th>
+            <th>Tên khách hàng</th>
+            <th>Ngày sinh</th>
+            <th>Email</th>
+            <th>Số điện thoại</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Dữ liệu khách hàng sẽ được render ở đây -->
+        </tbody>
+      </table>
+    </div>
+    <div id="pagination"></div>
+  </main>
+
+  <!-- Modal Form -->
+  <div class="modal fade" id="customerModal" tabindex="-1">
+    <div class="modal-dialog">
+      <form class="modal-content" id="customerForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="formTitle">Thêm khách hàng</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3" id="unamed">
+            <label for="customerCode" class="form-label">Mã khách hàng</label>
+            <input type="text" id="customerCode" class="form-control" required readonly />
+          </div>
+          <div class="mb-3">
+            <label for="customerName" class="form-label">Tên khách hàng</label>
+            <input type="text" id="customerName" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="customerDob" class="form-label">Ngày sinh</label>
+            <input type="date" id="customerDob" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="customerEmail" class="form-label">Email</label>
+            <input type="email" id="customerEmail" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="customerPhone" class="form-label">Số điện thoại</label>
+            <input type="tel" id="customerPhone" class="form-control" required pattern="[0-9]{9,11}" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    addEventListener('DOMContentLoaded', () => {
+      if (!localStorage.getItem('employee')) {
+        localStorage.setItem('previousPage', window.location.href)
+        window.location.href = 'login.html'
+      }
+    });
+    const baseUrl = 'http://127.0.0.1:4000';
+    let customers = [];
+    fetch(`${baseUrl}/customers`)
+      .then((response, err) => {
+        if (!response.ok) {
+          throw new Error(`Response error: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data, err) => {
+        customers = data
+        renderCustomers()
+      });
+
+    const tbody = document.querySelector('#customersTable tbody');
+    const form = document.getElementById('customerForm');
+    const formTitle = document.getElementById('formTitle');
+    const modalInstance = new bootstrap.Modal(document.getElementById('customerModal'));
+    const customerCodeDiv = document.getElementById('unamed');
+
+    const codeInput = document.getElementById('customerCode');
+    const nameInput = document.getElementById('customerName');
+    const emailInput = document.getElementById('customerEmail');
+    const phoneInput = document.getElementById('customerPhone');
+    const dobInput = document.getElementById('customerDob');
+    const searchInput = document.getElementById('searchInput');
+
+    let editingIndex = -1;
+    let currentPage = 1;
+    const pageSize = 2;
+
+    function paginate(array, pageSize, pageNumber) {
+      return array.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
+    }
+
+    function renderPagination(totalItems) {
+      const pageCount = Math.ceil(totalItems / pageSize);
+      let paginationHTML = `<nav><ul class="pagination justify-content-center mt-3">`;
+
+      for (let i = 1; i <= pageCount; i++) {
+        paginationHTML += `
+        <li class="page-item ${i === currentPage ? 'active' : ''}">
+          <button class="page-link" onclick="goToPage(${i})">${i}</button>
+        </li>`;
+      }
+
+      paginationHTML += `</ul></nav>`;
+
+      const paginationContainer = document.getElementById('pagination');
+      if (!paginationContainer) {
+        const container = document.createElement('div');
+        container.id = 'pagination';
+        document.querySelector('.table-responsive').appendChild(container);
+      }
+      document.getElementById('pagination').innerHTML = paginationHTML;
+    }
+
+    function renderCustomers(customerList = customers) {
+      const paginated = paginate(customerList, pageSize, currentPage);
+      tbody.innerHTML = '';
+      paginated.forEach((cus, i) => {
+        const row = `
+                <tr>
+                  <td>${cus.id}</td>
+                  <td>${cus.tenKH}</td>
+                  <td>${Intl.DateTimeFormat('vi-VN').format(new Date(cus.ngaySinh))}
+                  <td>${cus.email}</td>
+                  <td>${cus.sdt}</td>
+                  <td class="text-center text-nowrap">
+                    <div class="d-inline-flex gap-1">
+                    <button class="btn btn-sm btn-warning" onclick="editCustomer(${(currentPage - 1) * pageSize + i})">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteCustomer(${(currentPage - 1) * pageSize + i})">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+      renderPagination(customerList.length);
+    }
+
+    function goToPage(page) {
+      currentPage = page;
+      const keyword = searchInput.value.trim().toLowerCase();
+      const filtered = keyword
+        ? customers.filter(p =>
+          p.id.toLowerCase().includes(keyword) ||
+          p.tenKH.toLowerCase().includes(keyword) ||
+          p.sdt.includes(keyword))
+        : customers;
+      renderCustomers(filtered);
+    }
+
+    function searchCustomers() {
+      currentPage = 1;
+      const keyword = searchInput.value.trim().toLowerCase();
+      const filteredCustomers = customers.filter(p =>
+        p.id.toLowerCase().includes(keyword) ||
+        p.tenKH.toLowerCase().includes(keyword) ||
+        p.sdt.includes(keyword));
+
+      renderCustomers(filteredCustomers);
+    }
+
+    function openAddForm() {
+      editingIndex = -1;
+      formTitle.textContent = 'Thêm khách hàng';
+      form.reset();
+      codeInput.disabled = false;
+      customerCodeDiv.style.display = "none";
+      modalInstance.show();
+    }
+
+    function editCustomer(index) {
+      editingIndex = index;
+      const c = customers[index];
+      formTitle.textContent = 'Chỉnh sửa khách hàng';
+      codeInput.value = c.id;
+      nameInput.value = c.tenKH;
+      emailInput.value = c.email;
+      phoneInput.value = c.sdt;
+      dobInput.value = c.ngaySinh.slice(0, 10);
+      codeInput.disabled = true;
+      customerCodeDiv.style.display = "block";
+      modalInstance.show();
+    }
+
+    function deleteCustomer(id) {
+      if (confirm('Bạn có chắc chắn muốn xóa khách hàng này?')) {
+        fetch(`${baseUrl}/customers/${customers[id].id}`, {
+          method: 'DELETE',
+        })
+          .then((response, err) => {
+            if (response.status === 404) {
+              console.log('Khách hàng không tồn tại')
+            }
+            location.reload();
+          })
+      }
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      modalInstance.hide();
+      const id = codeInput.value.trim();
+      const tenKH = nameInput.value.trim();
+      const email = emailInput.value.trim();
+      const sdt = phoneInput.value.trim();
+      const ngaySinh = dobInput.value.trim();
+      const newCustomer = { tenKH, e001mail, sdt, ngaySinh };
+
+
+      if (!tenKH || !email || !sdt || !ngaySinh) {
+        alert('Vui lòng nhập đầy đủ thông tin!');
+        return;
+      }
+
+      if (editingIndex === -1) {
+        fetch(`${baseUrl}/customers`, {
+          method: 'POST',
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tenKH, email, sdt, ngaySinh }),
+        })
+          .then((response, err) => {
+            if (response.status === 201)
+              return response.json(newCustomer)
+          })
+          .then((data, err) => {
+            customers.push({ id: data.id, ...newCustomer })
+            renderCustomers();
+          })
+      } else {
+        fetch(`${baseUrl}/customers/${id}`, {
+          method: 'PUT',
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newCustomer),
+        })
+          .then((response, err) => {
+            if (!response.ok) throw new Error(err.message)
+            customers[editingIndex] = { id, ...newCustomer };
+            renderCustomers();
+          })
+      }
+    });
+
+    const username = document.getElementById('username');
+    username.innerHTML = localStorage.getItem('employee') ? JSON.parse(localStorage.getItem('employee')).taiKhoan : '';
+
+    // Logout handler
+    function logout() {
+      // Xoá token nếu có
+      localStorage.clear();
+    }
+
+  </script>
+</body>
+
+</html>
