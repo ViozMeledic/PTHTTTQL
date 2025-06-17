@@ -273,7 +273,7 @@
       const giaBan = parseFloat(priceInput.value);
       const soLuong = parseInt(quantityInput.value);
       const newProduct = { tenSP, giaBan, soLuong };
-      if (!id || !tenSP || giaBan < 0 || soLuong < 0) {
+      if (!tenSP || giaBan < 0 || soLuong < 0) {
         alert('Vui lòng nhập đúng thông tin!');
         return;
       }
