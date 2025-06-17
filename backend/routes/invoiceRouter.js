@@ -12,11 +12,6 @@ const projectFields = '-_id -__v'
 invoiceRouter.get('/', async function (req, res) {
     const orderBy = req.query.orderBy || 'id'
     let invoices = await Invoice.aggregate([
-        // {
-        //     $match: {
-        //         id: 'HD001'
-        //     }
-        // },
         {
             $project: {
                 _id: 0,
@@ -82,10 +77,10 @@ invoiceRouter.get('/:id', async function (req, res) {
 invoiceRouter.post('/', async function (req, res) {
     const invoice = req.body
     const cart = invoice.products
-    let customer = await Customer.find({ ...invoice.customer })
+    let customer = await Customer.findOne({ ...invoice.customer })
     let finished = false
 
-    if (customer.length === 0) {
+    if (!customer) {
         res.status(404).json({
             code: 'notFound',
             message: 'Khách hàng không tồn tại',
@@ -124,7 +119,7 @@ invoiceRouter.post('/', async function (req, res) {
         id: nextId,
         tongTien: invoice.tongTien,
         ngayTao: invoice.ngayTao,
-        KhachHangid: customer[0].id,
+        KhachHangid: customer.id,
         tblNhanVienid: invoice.tblNhanVienid,
     }).save()
 
@@ -172,27 +167,47 @@ invoiceRouter.post('/', async function (req, res) {
     res.status(201).json({ id: newInvoice.id })
 })
 
-invoiceRouter.put('/', async function () {
+invoiceRouter.put('/:id', async function (req, res) {
     const invoice = req.body
     const productIds = invoice.sanPham.map(product => product.id)
-    const products = await Product.find({
-        $in: ['$id', productIds]
-    })
+    const products = await Product.find({ id: { $in: productIds } })
     const updatingProductInvoiceOp = []
-    
+    const updatingProductOp = []
     for (const product of invoice.sanPham) {
-        if (product.soLuong > products.filter(p => p.id === product.id).soLuong)
-            continue
+        let oldProductInvoice = await ProductInvoice.findOne({
+            tblSanPhamid: product.id,
+            tblHoaDonid: req.params.id
+        })
+        if (product.soLuong > products.find(p => p.id === product.id).soLuong + oldProductInvoice.soLuong) {
+            res.status(500).json({
+                code: 'internalServerError',
+                message: `Số lượng sản phẩm ${product.tenSP} trong kho không đủ`,
+            })
+            return
+        }
+    }
+    for (const product of invoice.sanPham) {
+        let oldProductInvoice = await ProductInvoice.findOne({
+            tblSanPhamid: product.id,
+            tblHoaDonid: req.params.id
+        })
         updatingProductInvoiceOp.push(ProductInvoice.updateOne(
             {
-                tblHoaDonid: invoice.id,
+                tblHoaDonid: req.params.id,
                 tblSanPhamid: product.id,
             },
             { soLuong: product.soLuong },
         ))
+        let oldProduct = await Product.findOne({ id: product.id })
+        updatingProductOp.push(Product.updateOne(
+            { id: product.id },
+            { soLuong: oldProduct.soLuong + oldProductInvoice.soLuong - product.soLuong },
+        ))
     }
     await Promise.all(updatingProductInvoiceOp)
+    await Promise.all(updatingProductOp)
 
+    await Invoice.updateOne({ id: req.params.id }, { tongTien: invoice.tongTien })
     res.status(200).end()
 })
 
