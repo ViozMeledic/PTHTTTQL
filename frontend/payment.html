@@ -151,9 +151,7 @@
               </div>
               <div class="col-md-6">
                 <label for="customerPhone" class="form-label">Số điện thoại:</label>
-                <input type="tel" class="form-control" id="customerPhone" placeholder="0987654321" required
-                  oninvalid="this.setCustomValidity('Vui lòng nhập Số điện thoại')"
-                  oninput="this.setCustomValidity('')" />
+                <input type="tel" class="form-control" id="customerPhone" placeholder="0987654321" required pattern="[0-9]{9,11}"/>
               </div>
               <div class="col-md-6">
                 <label for="customerBirth" class="form-label">Ngày sinh:</label>

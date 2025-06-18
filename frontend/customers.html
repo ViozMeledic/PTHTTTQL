@@ -54,12 +54,12 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
       <div class="flex-grow-1">
-        <input type="text" id="searchInput" class="form-control" placeholder="Tìm nhân viên..."
+        <input type="text" id="searchInput" class="form-control" placeholder="Tìm khách hàng..."
           oninput="searchCustomers()" />
       </div>
 
       <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#customerModal" onclick="openAddForm()">
-        <i class="bi bi-plus-circle"></i> Thêm nhân viên
+        <i class="bi bi-plus-circle"></i> Thêm khách hàng
       </button>
     </div>
     <div class="table-responsive">
@@ -283,7 +283,7 @@
       const email = emailInput.value.trim();
       const sdt = phoneInput.value.trim();
       const ngaySinh = dobInput.value.trim();
-      const newCustomer = { tenKH, e001mail, sdt, ngaySinh };
+      const newCustomer = { tenKH, email, sdt, ngaySinh };
 
 
       if (!tenKH || !email || !sdt || !ngaySinh) {

@@ -81,11 +81,18 @@ invoiceRouter.post('/', async function (req, res) {
     let finished = false
 
     if (!customer) {
-        res.status(404).json({
-            code: 'notFound',
-            message: 'Khách hàng không tồn tại',
-        })
-        return
+        const customers = await Customer
+            .find()
+            .select('id')
+            .sort('-id')
+            .limit(1)
+        let nextId
+        if (customers.length === 0) {
+            nextId = "KH001"
+        } else {
+            nextId = getNextId(customers[0].id)
+        }
+        customer = await new Customer({ id: nextId, ...invoice.customer }).save();
     }
 
     let products = await Product.find({

@@ -83,6 +83,27 @@ statisticsRouter.get('/', async function (req, res) {
             ])
             res.status(200).json(revenue.length > 0 ? revenue[0] : { revenue: 0 })
             break
+        case 'revenueByDay':
+            const revenueByDay = await Invoice.aggregate([
+                {
+                    $match: {
+                        ngayTao: { $lt: endDate, $gte: startDate }
+                    }
+                },
+                {
+                    $group: {
+                        _id : { $dateToString: { format: "%Y-%m-%d", date: "$ngayTao" } },
+                        revenue: { $sum: '$tongTien' }
+                    }
+                },
+                {
+                    $sort: {
+                        _id: 1
+                    }
+                }
+            ])
+            res.status(200).json(revenueByDay)
+            break
         case 'totalSold':
             const totalSold = await ProductInvoice.aggregate([
                 {
