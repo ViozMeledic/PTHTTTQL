@@ -389,7 +389,7 @@
       const paymentMethod = document.getElementById("paymentMethod").value.trim();
       const nganHang = paymentMethod === 'bank' ? 'AgriBank' : '';
       const maGiaoDich = paymentMethod === 'bank' ? String(Date.now()) : '';
-
+      
       if (!name) {
         alert("Vui lòng nhập Họ và tên");
         return;
@@ -435,7 +435,7 @@
             email: email
           },
           tongTien: grandTotal,
-          ngayTao: Date.now(),
+          ngayTao: new Date(),
           hinhThucThanhToan: paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản',
           nganHang,
           maGiaoDich,
@@ -444,26 +444,50 @@
       })
         .then((response, err) => {
           if (response.status === 201) {
-            alert("Lưu hóa đơn thành công! Cảm ơn bạn.");
-            return
+            // Tạo nội dung hóa đơn thực tế từ giỏ hàng
+            const invoiceHTML = generateInvoiceHTML(name, phone, dob, email);
+            // Hỏi người dùng có muốn in không
+            const confirmPrint = confirm("Bạn có muốn in hóa đơn không?");
+
+            if (confirmPrint) {
+              document.getElementById("invoiceContent").innerHTML = invoiceHTML;
+              document.getElementById("invoiceModal").style.display = "block";
+            } else {
+              alert("Hóa đơn đã được lưu thành công.");
+            }
           }
-          return response.json()
-        })
-        .then((data, err) => {
-          if (data)
-            alert(data.message)
+
+          // Reset form và giỏ hàng
+          cart = [];
+          renderCart();
+          document.getElementById("customerForm").reset();
+          document.getElementById("cashReceived").value = "";
+          document.getElementById("change").textContent = "0";
         })
 
-      // Reset form và giỏ hàng
-      cart = [];
-      renderCart();
-      document.getElementById("customerForm").reset();
-      document.getElementById("cashReceived").value = "";
-      document.getElementById("change").textContent = "0";
+
     }
 
     // Khởi tạo
-    handlePaymentChange();
+    // handlePaymentChange();
+    function generateInvoiceHTML(name, phone, dob, email) {
+      // Tạo HTML cho hóa đơn từ giỏ hàng thực tế
+      let productsHTML = cart.map(item =>
+        `<p>${item.tenSP} - ${item.giaBan.toLocaleString()} VND x ${item.soLuong}</p>`
+      ).join('');
+
+      const total = cart.reduce((sum, item) => sum + item.giaBan * item.soLuong, 0);
+
+      return `
+    <p><strong>Khách hàng:</strong>${name}</p>
+    <p><strong>SĐT:</strong>${phone}</p>
+    <p><strong>Ngày sinh:</strong>${new Date(dob).toLocaleDateString('vi-VN')}</p>
+    <p><strong>Email:</strong>${email}</p>
+    ${productsHTML}
+    <p><strong>Tổng tiền:</strong>${total.toLocaleString()} VND</p>
+    <p><strong>Phương thức:</strong>${document.getElementById("paymentMethod").value === "cash" ? "Tiền mặt" : "Chuyển khoản"}</p>
+  `;
+    }
   </script>
 
   <script>

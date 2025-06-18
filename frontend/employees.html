@@ -148,6 +148,9 @@
       if (!localStorage.getItem('employee')) {
         localStorage.setItem('previousPage', window.location.href)
         window.location.href = 'login.html'
+      } else if (JSON.parse(localStorage.getItem('employee')).chucVu !== 'Quan ly') {
+        alert('Vui lòng sử  dụng tài khoản admin để  sử dụng chức năng này.')
+        window.location.href = 'login.html'
       }
     });
     const baseUrl = 'http://127.0.0.1:4000';
