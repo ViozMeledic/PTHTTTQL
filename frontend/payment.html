@@ -151,7 +151,8 @@
               </div>
               <div class="col-md-6">
                 <label for="customerPhone" class="form-label">Số điện thoại:</label>
-                <input type="tel" class="form-control" id="customerPhone" placeholder="0987654321" required pattern="[0-9]{9,11}"/>
+                <input type="tel" class="form-control" id="customerPhone" placeholder="0987654321" required
+                  pattern="[0-9]{9,11}" oninput="searchCustomer()" />
               </div>
               <div class="col-md-6">
                 <label for="customerBirth" class="form-label">Ngày sinh:</label>
@@ -314,6 +315,29 @@
       renderCart();
     }
 
+    function searchCustomer() {
+      const phone = document.getElementById('customerPhone').value.trim();
+      fetch(`${baseUrl}/customers`)
+        .then((response, err) => {
+          if (!response.ok) {
+            throw new Error(`Response error: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((customers, err) => {
+          let customer = customers.find(cus => cus.sdt === phone)
+          if (customer) {
+            document.getElementById("customerName").value = customer.tenKH;
+            document.getElementById("customerBirth").value = customer.ngaySinh.slice(0, 10);
+            document.getElementById("customerEmail").value = customer.email;
+          } else {
+            document.getElementById("customerName").value = '';
+            document.getElementById("customerBirth").value = '';
+            document.getElementById("customerEmail").value = '';
+          }
+        });
+    }
+
     /**
      * Xóa sản phẩm khỏi giỏ hàng
      * @param {number} index 
@@ -387,13 +411,17 @@
       const paymentMethod = document.getElementById("paymentMethod").value.trim();
       const nganHang = paymentMethod === 'bank' ? 'AgriBank' : '';
       const maGiaoDich = paymentMethod === 'bank' ? String(Date.now()) : '';
-      
+
       if (!name) {
         alert("Vui lòng nhập Họ và tên");
         return;
       }
       if (!phone) {
         alert("Vui lòng nhập Số điện thoại");
+        return;
+      }
+      if (!isValidPhoneNumber(phone)) {
+        alert("Vui lòng nhập Số điện thoại đúng format yêu cầu")
         return;
       }
       if (!dob) {
