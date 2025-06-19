@@ -453,7 +453,7 @@
         method: 'POST',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tblNhanVienid: localStorage.getItem('id'),
+          tblNhanVienid: JSON.parse(localStorage.getItem('employee')).id,
           customer: {
             tenKH: name,
             sdt: phone,
@@ -489,9 +489,12 @@
           document.getElementById("customerForm").reset();
           document.getElementById("cashReceived").value = "";
           document.getElementById("change").textContent = "0";
+          return response.json();
         })
-
-
+        .then ((data, err) => {
+          if (data.code)
+            alert(data.message)
+        })
     }
 
     // Khởi tạo
